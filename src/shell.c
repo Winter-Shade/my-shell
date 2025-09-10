@@ -36,7 +36,7 @@ int s_execute(char *cmd, char **cmd_args) {
     }
 
     if (pid == 0) {
-        execv(cmd, cmd_args);
+        execvp(cmd, cmd_args);
     } else {
         // father: waits for child
         if (waitpid (pid, &status, 0) != pid) {
