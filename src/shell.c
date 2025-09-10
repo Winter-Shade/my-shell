@@ -10,10 +10,10 @@
 #define MAX_ARGS 1024
 #define TOKEN_SEPS " \t"
 
-int s_read(char *input, char **args, int max_args) {
+int s_read(char *input, char **args) {
     int i = 0;
     char *token = strtok(input, TOKEN_SEPS); // whitespace and tab are token separators
-    while (token != NULL && i < (max_args - 1)) {
+    while (token != NULL && i < (MAX_ARGS - 1)) {
         args[i++] = token;
         token = strtok(NULL, TOKEN_SEPS);
     }
@@ -28,9 +28,9 @@ int main(void) {
     }
 
     char *line;
-    char **args;
+    char *args[MAX_ARGS];
     while((line = linenoise(PROMPT)) != NULL) {
-        int args_read = s_read(line, args, MAX_ARGS);
+        int args_read = s_read(line, args);
         
         fprintf(stdout, "Read %d args\n", args_read);
         for (int i = 0; i < args_read; i++) {
