@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "./lib/linenoise.h"
 
 #define PROMPT "$ "
@@ -19,6 +21,31 @@ int s_read(char *input, char **args) {
     }
     args[i] = NULL;
     return i;
+}
+
+int s_execute(char *cmd, char **cmd_args) {
+    fprintf(stdout, "Executing `%s`\n", cmd);
+
+    int status;
+    pid_t pid;
+
+    pid = fork();
+    if (pid < 0) {
+        fprintf(stderr, "Could not execute\n");
+        return -1;
+    }
+
+    if (pid == 0) {
+        execv(cmd, cmd_args);
+    } else {
+        // father: waits for child
+        if (waitpid (pid, &status, 0) != pid) {
+            fprintf(stderr, "Could not wait for child!\n");
+            return -1;
+        }
+    }
+
+    return status;
 }
 
 int main(void) {
@@ -42,6 +69,11 @@ int main(void) {
             linenoiseFree(line);
             continue;
         }
+
+        // Eval + Print Step
+        char *cmd = args[0];
+        char **cmd_args = args;
+        s_execute(cmd, cmd_args);
 
         linenoiseHistoryAdd(line);
         linenoiseFree(line);
