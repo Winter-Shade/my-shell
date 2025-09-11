@@ -1,4 +1,4 @@
-# my-shell   
+# tiny-shell   
 
 REPL - Read Eval Print Loop
 
