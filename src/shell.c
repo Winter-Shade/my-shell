@@ -11,6 +11,9 @@
 #define HISTORY_LENGTH 1024
 #define MAX_ARGS 1024
 #define TOKEN_SEPS " \t"
+#define PATH_MAX 4096
+
+char CWD[PATH_MAX];
 
 int s_read(char *input, char **args) {
     int i = 0;
@@ -48,6 +51,59 @@ int s_execute(char *cmd, char **cmd_args) {
     return status;
 }
 
+typedef enum Builtin {
+  CD,
+  PWD,
+  INVALID
+} Builtin;
+
+void builtin_impl_cd(char **args, size_t n_args);
+void builtin_impl_pwd(char **args, size_t n_args);
+
+void (*BUILTIN_TABLE[]) (char **args, size_t n_args) = {
+  [CD] = builtin_impl_cd,
+  [PWD] = builtin_impl_pwd,
+};
+
+Builtin builtin_code(char *cmd) {
+  if (!strncmp(cmd, "cd", 2)) {
+    return CD;
+  } else if (!strncmp(cmd, "pwd", 3)) {
+    return PWD;
+  } else {
+    return INVALID;
+  }
+}
+
+int is_builtin(char *cmd) {
+  return builtin_code(cmd) != INVALID;
+}
+
+void s_execute_builtin(char *cmd, char **args, size_t n_args) {
+  BUILTIN_TABLE[builtin_code(cmd)](args, n_args);
+}
+
+void refresh_cwd(void) {
+  if (getcwd(CWD, sizeof(CWD)) == NULL) {
+    fprintf(stderr, "Error: Could not read working dir");
+    exit(1);
+  }
+}
+
+void builtin_impl_cd(char **args, size_t n_args) {
+  char *new_dir = *args;
+  if (chdir(new_dir) != 0) {
+    fprintf(stderr, "Error: Could not change directory");
+    exit(1);
+  }
+  refresh_cwd();
+}
+
+void builtin_impl_pwd(char **args, size_t n_args) {
+  fprintf(stdout, "%s\n", CWD);
+}
+
+
 int main(void) {
     if (!linenoiseHistorySetMaxLen(HISTORY_LENGTH)) {
         fprintf(stderr, "Could not set linenoise history");
@@ -73,7 +129,11 @@ int main(void) {
         // Eval + Print Step
         char *cmd = args[0];
         char **cmd_args = args;
-        s_execute(cmd, cmd_args);
+        if (is_builtin(cmd)) {
+            s_execute_builtin(cmd, (cmd_args+1), args_read-1);
+        } else {
+            s_execute(cmd, cmd_args);
+        }
 
         linenoiseHistoryAdd(line);
         linenoiseFree(line);
